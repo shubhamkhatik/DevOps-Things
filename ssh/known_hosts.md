@@ -1,4 +1,64 @@
 
+# Adding `known_hosts` in CI/CD (GitHub Actions)
+
+The `known_hosts` file stores SSH server fingerprints.  
+In CI/CD, we need it to avoid interactive "Are you sure you want to continue connecting?" prompts when using SSH.
+
+---
+
+## Method 1: Using a file from the repo (cp)
+
+- Commit your `known_hosts` file into the repo (e.g. at `.cicd/known_hosts`).
+- In your workflow, copy it into place:
+
+```yaml
+- name: Setup SSH known hosts (from repo)
+  run: |
+    mkdir -p ~/.ssh
+    cp .cicd/known_hosts ~/.ssh/known_hosts
+
+
+✅ Simple, works if you don’t mind the fingerprint stored in repo.
+⚠️ Anyone with repo access can see the fingerprint.
+
+Method 2: Using GitHub Secrets (echo)
+
+Generate fingerprint locally:
+
+ssh-keyscan -H your-server.com
+
+
+Copy the output (e.g. your-server.com ssh-ed25519 AAAAC3NzaC...).
+
+Save it as a GitHub Secret → KNOWN_HOSTS.
+
+In your workflow:
+
+- name: Setup SSH known hosts (from secret)
+  run: |
+    mkdir -p ~/.ssh
+    echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+
+✅ Safer, no fingerprint stored in repo.
+⚠️ Need to manage secrets in GitHub.
+
+Summary
+Method	Source of data	Pros	Cons
+cp	File in repo	Easy to set up	Fingerprint visible in repo
+echo	GitHub Secret	More secure (hidden)	Must manage secrets manually
+Best Practice
+
+Use GitHub Secret method for production.
+
+Use Repo file method for testing or internal servers.
+
+
+---
+
+
+
+================================================================================================================
 ## What: Known Host File in CI/CD
 
 A known hosts file contains SSH fingerprints of servers that your CI/CD pipeline connects to. It prevents man-in-the-middle attacks by verifying server authenticity before establishing SSH connections.
